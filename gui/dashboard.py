@@ -35,65 +35,47 @@ def query(q: LiteralString) -> LiteralString:
 
 
 query_all_mis_reddit_date = '''
-    MATCH (n:Reddit)-[:SIMILAR|SIMILAR_VIA_ARTICLE]-(c:Claim)
-    WITH n, c
-    MATCH (c)-[:HAS_LABEL]->(l:Label)
+    MATCH (n:Reddit)-[:SIMILAR|SIMILAR_VIA_ARTICLE]->(:Claim)-[:HAS_LABEL]->(l:Label {size:'large'})
     WHERE l.verdict='misinformation'
     RETURN n.createdAt AS time
 '''
 
 query_all_fac_reddit_date = '''
-    MATCH (n:Reddit)-[:SIMILAR|SIMILAR_VIA_ARTICLE]-(c:Claim)
-    WITH n, c
-    MATCH (c)-[:HAS_LABEL]->(l:Label)
+    MATCH (n:Reddit)-[:SIMILAR|SIMILAR_VIA_ARTICLE]->(:Claim)-[:HAS_LABEL]->(l:Label {size:'large'})
     WHERE l.verdict='factual'
     RETURN n.createdAt AS time
 '''
 
 query_mis_reddit_date_conditioned = '''
-    MATCH (n:Reddit)-[:SIMILAR|SIMILAR_VIA_ARTICLE]-(c:Claim)
-    WHERE n.createdAt >= $start_time and n.createdAt <= $end_time
-    WITH n, c
-    OPTIONAL MATCH (c)-[:HAS_LABEL]->(l:Label)
-    WHERE l.verdict='misinformation'
+    MATCH (n:Reddit)-[:SIMILAR|SIMILAR_VIA_ARTICLE]->(:Claim)-[:HAS_LABEL]->(l:Label {size:'large'})
+    WHERE l.verdict='misinformation' and n.createdAt >= $start_time and n.createdAt <= $end_time
     RETURN n.createdAt AS time
 '''
 
 query_fac_reddit_date_conditioned = '''
-    MATCH (n:Reddit)-[:SIMILAR|SIMILAR_VIA_ARTICLE]-(c:Claim)
-    WHERE n.createdAt >= $start_time and n.createdAt <= $end_time
-    WITH n, c
-    OPTIONAL MATCH (c)-[:HAS_LABEL]->(l:Label)
-    WHERE l.verdict='factual'
+    MATCH (n:Reddit)-[:SIMILAR|SIMILAR_VIA_ARTICLE]->(:Claim)-[:HAS_LABEL]->(l:Label {size:'large'})
+    WHERE l.verdict='factual' and n.createdAt >= $start_time and n.createdAt <= $end_time
     RETURN n.createdAt AS time
 '''
 
 query_mis_reddit_graph = '''
-    MATCH (n:Reddit)-[:SIMILAR|SIMILAR_VIA_ARTICLE]-(c:Claim)
-    WITH n, c
-    MATCH (c)-[:HAS_LABEL]->(l:Label)
+    MATCH (n:Reddit)-[:SIMILAR|SIMILAR_VIA_ARTICLE]->(:Claim)-[:HAS_LABEL]->(l:Label {size:'large'})
     WHERE l.verdict='misinformation'
     WITH n
-    MATCH (n)-[:BELONGS_TO]->(s:Subreddit)
-    MATCH (u:User)-[:POSTED]->(n)
-    RETURN n.redditId AS reddit, s.name as subreddit, u.userFullname as user LIMIT $limit
+    MATCH (u:User)-[:POSTED]->(n)-[:BELONGS_TO]->(s:Subreddit)
+    RETURN n.redditId AS reddit, s.name as subreddit, u.userFullname as user LIMIT $mis_limit
 '''
 
 query_fac_reddit_graph = '''
-    MATCH (n:Reddit)-[:SIMILAR|SIMILAR_VIA_ARTICLE]-(c:Claim)
-    WITH n, c
-    MATCH (c)-[:HAS_LABEL]->(l:Label)
+    MATCH (n:Reddit)-[:SIMILAR|SIMILAR_VIA_ARTICLE]->(:Claim)-[:HAS_LABEL]->(l:Label {size:'large'})
     WHERE l.verdict='factual'
     WITH n
-    MATCH (n)-[:BELONGS_TO]->(s:Subreddit)
-    MATCH (u:User)-[:POSTED]->(n)
-    RETURN n.redditId AS reddit, s.name as subreddit, u.userFullname as user LIMIT $limit
+    MATCH (u:User)-[:POSTED]->(n)-[:BELONGS_TO]->(s:Subreddit)
+    RETURN n.redditId AS reddit, s.name as subreddit, u.userFullname as user LIMIT $fac_limit
 '''
 
 query_mis_reddit_content = '''
-    MATCH (n:Reddit)-[:SIMILAR|SIMILAR_VIA_ARTICLE]-(c:Claim)
-    WITH n, c
-    MATCH (c)-[:HAS_LABEL]->(l:Label)
+    MATCH (n:Reddit)-[:SIMILAR|SIMILAR_VIA_ARTICLE]->(:Claim)-[:HAS_LABEL]->(l:Label {size:'large'})
     WHERE l.verdict='misinformation'
     WITH n
     OPTIONAL MATCH (n)-[:HAS_ARTICLE]->(a:Article)
@@ -101,9 +83,7 @@ query_mis_reddit_content = '''
 '''
 
 query_fac_reddit_content = '''
-    MATCH (n:Reddit)-[:SIMILAR|SIMILAR_VIA_ARTICLE]-(c:Claim)
-    WITH n, c
-    MATCH (c)-[:HAS_LABEL]->(l:Label)
+    MATCH (n:Reddit)-[:SIMILAR|SIMILAR_VIA_ARTICLE]->(:Claim)-[:HAS_LABEL]->(l:Label {size:'large'})
     WHERE l.verdict='factual'
     WITH n
     OPTIONAL MATCH (n)-[:HAS_ARTICLE]->(a:Article)
@@ -349,15 +329,16 @@ def count_str_list_to_dict(date_list: list, str_key: str, count_key: str,
 
 @bp.route('/graph')
 def getRedditGraph():
-    limit = request.args.get("limit", type=int)
+    mis_limit = request.args.get("mis_limit", type=int)
+    fac_limit = request.args.get("fac_limit", type=int)
     db = get_db()
     mis_records, _, _ = db.execute_query(
         query(query_mis_reddit_graph),
-        limit=limit
+        mis_limit=mis_limit
     )
     fac_records, _, _ = db.execute_query(
         query(query_fac_reddit_graph),
-        limit=limit
+        fac_limit=fac_limit
     )
     mis_nodes = []
     mis_rel = []

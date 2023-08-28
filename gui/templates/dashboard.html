@@ -85,42 +85,50 @@
 				</div>
 				<div class="tab-pane fade h-100" id="nav-wordCloud" role="tabpanel" aria-labelledby="nav-wordCloud-tab"
 					tabindex="1">
-					<div class="pt-2 d-flex align-items-center">
-						<label for="misLimit" class="me-1">
-							Number of Reddit post used to generate the word cloud
-						</label>
-						<div>
-							<label>Misinformation: </label>
-							<input type="number" class="form-control" min="10" max="2000" value="1000" id="misLimit">
-							<label>(Maximum: <span id="totalMisPost"></span>)</label>
-						</div>
-						<div>
-							<label>Factual </label>
-							<input type="number" class="form-control" min="10" max="2000" value="1000" id="facLimit">
-							<label>(Maximum: <span id="totalFacPost"></span>)</label>
-						</div>
-						<div class="ms-2">
-							<button type="button" class="btn btn-primary border-0 theme-color-3 ms-2" id="updateWordCloud">Update</button>
-						</div>
-					</div>
-					<div class="row py-2 w-100 h-100 m-auto p-0">
-						<div class="col-6 p-0 pe-2">
-							<div class="card border-light-subtle h-100">
-								<div class="theme-color-4 card-header border-light-subtle text-center">Misinformation
-								</div>
-								<div class="card-body p-0 w-100 h-100">
-									<div class="w-100 h-100" style="min-height: 450px;">
-										<svg id="wordCloudMis"></svg>
+					<div class="d-flex flex-column h-100">
+						<div class="pt-2 d-flex flex-column">
+							<label for="misLimit" class="me-1">
+								Number of Reddit post used to generate the word cloud
+							</label>
+							<div class="d-flex align-items-center">
+								<div class="flex-fill d-flex align-items-center justify-content-center">
+									<div class="d-flex align-items-center">
+										<label class="me-2">Misinformation:</label>
+										<input type="number" class="form-control" min="50" value="1000" id="misLimit">
 									</div>
+									<label class="ms-2">(Maximum: <span name="totalMisPost"></span>)</label>
+								</div>
+								<div class="flex-fill d-flex align-items-center justify-content-center">
+									<div class="d-flex align-items-center">
+										<label class="me-2">Factual </label>
+										<input type="number" class="form-control" min="50" value="1000" id="facLimit">
+									</div>
+									<label class="ms-2">(Maximum: <span name="totalFacPost"></span>)</label>
+								</div>
+								<div class="ms-2 col-auto">
+									<button type="button" class="btn btn-primary border-0 theme-color-3 ms-2" id="updateWordCloud">Update</button>
 								</div>
 							</div>
 						</div>
-						<div class="col-6 p-0">
-							<div class="card border-light-subtle h-100">
-								<div class="theme-color-4 card-header border-light-subtle text-center">Factual</div>
-								<div class="card-body p-0">
-									<div class="w-100 h-100">
-										<svg id="wordCloudFac"></svg>
+						<div class="row py-2 w-100 m-auto p-0 flex-fill">
+							<div class="col-6 p-0 pe-2">
+								<div class="card border-light-subtle h-100">
+									<div class="theme-color-4 card-header border-light-subtle text-center">Misinformation
+									</div>
+									<div class="card-body p-0 w-100 h-100">
+										<div class="w-100 h-100" style="min-height: 450px;">
+											<svg id="wordCloudMis"></svg>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div class="col-6 p-0">
+								<div class="card border-light-subtle h-100">
+									<div class="theme-color-4 card-header border-light-subtle text-center">Factual</div>
+									<div class="card-body p-0">
+										<div class="w-100 h-100">
+											<svg id="wordCloudFac"></svg>
+										</div>
 									</div>
 								</div>
 							</div>
@@ -129,24 +137,50 @@
 				</div>
 				<div class="tab-pane fade h-100" id="nav-socialNet" role="tabpanel" aria-labelledby="nav-socialNet-tab"
 					tabindex="2">
-					<div class="row py-2 w-100 h-100 m-auto">
-						<div class="col-6 p-0 pe-2">
-							<div class="card border-light-subtle h-100">
-								<div class="theme-color-4 card-header border-light-subtle text-center">Misinformation
-								</div>
-								<div class="card-body p-0">
-									<div class="w-100 h-100">
-										<svg id="socialNetMis"></svg>
+					<div class="d-flex flex-column h-100">
+						<div class="pt-2 d-flex flex-column">
+							<label for="misLimit" class="me-1">
+								Number of Reddit post used to generate the social graph
+							</label>
+							<div class="d-flex align-items-center">
+								<div class="flex-fill d-flex align-items-center justify-content-center">
+									<div class="d-flex align-items-center">
+										<label class="me-2">Misinformation:</label>
+										<input type="number" class="form-control" min="50" value="200" id="misLimitGraph">
 									</div>
+									<label class="ms-2">(Maximum: <span name="totalMisPost"></span>)</label>
+								</div>
+								<div class="flex-fill d-flex align-items-center justify-content-center">
+									<div class="d-flex align-items-center">
+										<label class="me-2">Factual </label>
+										<input type="number" class="form-control" min="50" value="200" id="facLimitGraph">
+									</div>
+									<label class="ms-2">(Maximum: <span name="totalFacPost"></span>)</label>
+								</div>
+								<div class="ms-2 col-auto">
+									<button type="button" class="btn btn-primary border-0 theme-color-3 ms-2" id="updateSocialNet">Update</button>
 								</div>
 							</div>
 						</div>
-						<div class="col-6 p-0">
-							<div class="card border-light-subtle h-100">
-								<div class="theme-color-4 card-header border-light-subtle text-center">Factual</div>
-								<div class="card-body p-0">
-									<div class="w-100 h-100">
-										<svg id="socialNetFac"></svg>
+						<div class="row py-2 w-100 m-auto p-0 flex-fill">
+							<div class="col-6 p-0 pe-2">
+								<div class="card border-light-subtle h-100">
+									<div class="theme-color-4 card-header border-light-subtle text-center">Misinformation
+									</div>
+									<div class="card-body p-0">
+										<div class="w-100 h-100">
+											<svg id="socialNetMis"></svg>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div class="col-6 p-0">
+								<div class="card border-light-subtle h-100">
+									<div class="theme-color-4 card-header border-light-subtle text-center">Factual</div>
+									<div class="card-body p-0">
+										<div class="w-100 h-100">
+											<svg id="socialNetFac"></svg>
+										</div>
 									</div>
 								</div>
 							</div>

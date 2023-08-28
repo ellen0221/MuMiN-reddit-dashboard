@@ -45,11 +45,20 @@ window.onload = function() {
 			if (tabId.indexOf('wordCloud') != -1 && misWords == null && facWords == null) {
 				// $("#misLimit").attr("max", totalMisCount);
 				loadWordCloud();
-			} else if (tabId.indexOf('wordCloud') != -1 && misSimulation == null && facSimulation == null) {
+			} else if (tabId.indexOf('socialNet') != -1 && misSimulation == null && facSimulation == null) {
 				loadSocialNet();
 			}
 		})
+	});
+	
+	$('#updateWordCloud').on('click', function() {
+		loadWordCloud();
 	})
+	
+	$('#updateSocialNet').on('click', function() {
+		loadSocialNet();
+	})
+
 
 	searchByDate('', '');
 }
@@ -147,8 +156,16 @@ let misWords = null;
 let facWords = null;
 
 function loadWordCloud() {
-	let misLimit = 1000;
-	let facLimit = 1000;
+	let misLimit = $('#misLimit').val();
+	if (misLimit > totalMisCount) {
+		misLimit = totalMisCount
+		$('#misLimit').val(totalMisCount);
+	}
+	let facLimit = $('#facLimit').val();
+	if (facLimit > totalFacCount) {
+		facLimit = totalFacCount
+		$('#facLimit').val(totalFacCount);
+	}
 	d3.json("/dashboard/word-cloud?mis_limit="+misLimit+"&fac_limit="+facLimit, function(error, data) {
 		if (error) return;
 		
@@ -220,6 +237,7 @@ function updateWordCloud(wordList, svgSelector) {
 let totalMisCount = 0;
 let totalFacCount = 0;
 
+
 /**
  * @param {string} startDate start date in a form of 'yyyy-MM'
  * @param {string} endDate end date in a form of 'yyyy-MM'
@@ -256,10 +274,14 @@ function searchByDate(startDate, endDate) {
 				$('#endDate').attr('min', minDate);
 				$('#endDate').attr('max', maxDate);
 				$('#lineChart').css('max-height', maxLen);
-				$('#totalMisPost').text(data['misCount']);
-				$('#totalFacPost').text(data['facCount']);
-				// totalMisCount = data['misCount'];
-				// totalFacCount = data['facCount'];
+				totalMisCount = data['misCount'];
+				totalFacCount = data['facCount'];
+				$('span[name="totalMisPost"]').text(totalMisCount);
+				$('span[name="totalFacPost"]').text(totalFacCount);
+				$('#misLimit').attr('max', totalMisCount);
+				$('#misLimitGraph').attr('max', totalMisCount);
+				$('#facLimit').attr('max', totalFacCount);
+				$('#facLimitGraph').attr('max', totalFacCount);
 				initLineChart(data['mis'], data['fac'], labels);
 			} else {
 				updateLineChart(data['mis'], data['fac'], labels);
@@ -274,7 +296,17 @@ let facSimulation = null;
 
 // Load social network of posts
 function loadSocialNet() {
-	d3.json("/dashboard/graph?limit=200", function(error, graph) {
+	let misLimit = $('#misLimitGraph').val();
+	if (misLimit > totalMisCount) {
+		misLimit = totalMisCount
+		$('#misLimitGraph').val(totalMisCount);
+	}
+	let facLimit = $('#facLimitGraph').val();
+	if (facLimit > totalFacCount) {
+		facLimit = totalFacCount
+		$('#facLimitGraph').val(totalFacCount);
+	}
+	d3.json("/dashboard/graph?mis_limit="+misLimit+"&fac_limit="+facLimit, function(error, graph) {
 		if (error) return;
 
 		misSimulation = initSocialGraph(graph.nodes.mis, graph.links.mis, "#socialNetMis");
@@ -290,9 +322,12 @@ function loadSocialNet() {
  * @param {string} svgSelector
  */
 function initSocialGraph(nodes, links, svgSelector) {
+	// Remove the old graph
+	$(svgSelector).empty();
+	
 	// set the dimensions and margins of the graph
-	var width = $('#wordCloudMis').parent().width(),
-		height = $('#wordCloudMis').parent().height();
+	var width = $(svgSelector).parent().width(),
+		height = $(svgSelector).parent().height();
 
 	var tooltip = d3.select("#netTooltip")
 		.style("opacity", 0);
@@ -306,10 +341,9 @@ function initSocialGraph(nodes, links, svgSelector) {
 
 	// Create the SVG container.
 	const svg = d3.select(svgSelector)
-		.attr("width", width)
-		.attr("height", height)
-		.attr("viewBox", [-width / 2, -height / 2, width, height])
-		.attr("style", "max-width: 100%; height: auto;");
+		.attr("preserveAspectRatio", "xMinYMin meet")
+		.attr("viewBox", [-width, -height, width*2, height*2])
+		.attr("style", "height: 100%; width: auto;");
 
 	// Add a line for each link, and a circle for each node.
 	const link = svg.append("g")
@@ -381,10 +415,6 @@ function initSocialGraph(nodes, links, svgSelector) {
 		node
 			.attr("cx", d => d.x)
 			.attr("cy", d => d.y);
-
-		// label
-		// 	.attr("x", function(d) { return d.x + 8; })
-		// 	.attr("y", function(d) { return d.y; });
 	});
 
 	// Reheat the simulation when drag starts, and fix the subject position.
@@ -405,12 +435,34 @@ function initSocialGraph(nodes, links, svgSelector) {
 		d.fy = null;
 	}
 
-	// When this cell is re-run, stop the previous simulation. (This doesn’t
-	// really matter since the target alpha is zero and the simulation will
-	// stop naturally, but it’s a good practice.)
-	// invalidation.then(() => simulation.stop());
-
 	return simulation;
+}
+
+function zoomFit(root) {
+    var bounds = root.node().getBBox();
+    var parent = root.node().parentElement;
+    var fullWidth  = parent.clientWidth  || parent.parentNode.clientWidth,
+        fullHeight = parent.clientHeight || parent.parentNode.clientHeight;
+    var width  = bounds.width,
+        height = bounds.height;
+    var midX = bounds.x + width / 2,
+        midY = bounds.y + height / 2;
+    if (width == 0 || height == 0) return; // nothing to fit
+    var scale = 0.85 / Math.max(width / fullWidth, height / fullHeight);
+    var translate = [
+        fullWidth  / 2 - scale * midX,
+        fullHeight / 2 - scale * midY
+    ];
+
+    // console.trace("zoomFit", translate, scale);
+	var transform = d3.zoomIdentity
+	  .translate(translate[0], translate[1])
+	  .scale(scale);
+	
+	root
+	  .transition()
+	  .duration(0) // milliseconds
+	  .call(zoom.transform, transform);
 }
 
 
@@ -431,28 +483,4 @@ function updateSocialGraph(simulation, svgSelector) {
 function isValidRedditURL(url) {
 	let exp = /^https:\/\/[a-z.]*redd/;
 	return exp.test(url);
-}
-
-
-Date.prototype.format = function(fmt) {
-	var o = {
-		"M+": this.getMonth() + 1, //月份
-		"d+": this.getDate(), //日
-		"h+": this.getHours(), //小时
-		"m+": this.getMinutes(), //分
-		"s+": this.getSeconds(), //秒
-		"q+": Math.floor((this.getMonth() + 3) / 3), //季度
-		"S": this.getMilliseconds() //毫秒
-	};
-	if (/(y+)/.test(fmt)) {
-		fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
-	}
-	for (var k in o) {
-		if (new RegExp("(" + k + ")").test(fmt)) {
-			fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[
-					k])
-				.length)));
-		}
-	}
-	return fmt;
 }
