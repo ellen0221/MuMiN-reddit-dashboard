@@ -73,10 +73,12 @@ window.onresize = function() {
 
 
 function checkRedditByUrl(url) {
+	$("#checkResult").text("Loading...");
 	$.post('/dashboard/classifier', {
 		url: url
 	}, function(data) {
 		console.log(data);
+		$("#checkResult").text(data.result);
 	})
 }
 
@@ -436,33 +438,6 @@ function initSocialGraph(nodes, links, svgSelector) {
 	}
 
 	return simulation;
-}
-
-function zoomFit(root) {
-    var bounds = root.node().getBBox();
-    var parent = root.node().parentElement;
-    var fullWidth  = parent.clientWidth  || parent.parentNode.clientWidth,
-        fullHeight = parent.clientHeight || parent.parentNode.clientHeight;
-    var width  = bounds.width,
-        height = bounds.height;
-    var midX = bounds.x + width / 2,
-        midY = bounds.y + height / 2;
-    if (width == 0 || height == 0) return; // nothing to fit
-    var scale = 0.85 / Math.max(width / fullWidth, height / fullHeight);
-    var translate = [
-        fullWidth  / 2 - scale * midX,
-        fullHeight / 2 - scale * midY
-    ];
-
-    // console.trace("zoomFit", translate, scale);
-	var transform = d3.zoomIdentity
-	  .translate(translate[0], translate[1])
-	  .scale(scale);
-	
-	root
-	  .transition()
-	  .duration(0) // milliseconds
-	  .call(zoom.transform, transform);
 }
 
 

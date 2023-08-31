@@ -17,9 +17,11 @@ import os
 import io
 import praw
 from newspaper import Article, ArticleException
-from transformers import BartTokenizer, BartForConditionalGeneration
+from transformers import BartTokenizer, BartForConditionalGeneration, pipeline
+from huggingface_hub import from_pretrained_keras
 import urllib.request
 from PIL import Image
+from keras.models import load_model
 from gui.db import get_db
 
 load_dotenv()
@@ -100,53 +102,89 @@ def index():
 def classifier():
     url = request.form.get("url", type=str)
 
+    input = get_info_from_reddit(url)
+
+    res = get_prediction_from_trained_model(input)
+
+    return Response(dumps({'result': res, 'url': url}), mimetype='application/json')
+
+def get_info_from_reddit(url):
     # Create a praw.Reddit instance
-    # reddit = praw.Reddit(
-    #     client_id=os.getenv('REDDIT_CLIENT_ID'),
-    #     client_secret=os.getenv('REDDIT_CLIENT_SECRET'),
-    #     refresh_token=os.getenv('REDDIT_REFRESH_TOKEN'),
-    #     user_agent=os.getenv('REDDIT_USER_AGENT'),
-    # )
-    # # Search Submission by url
-    # submission = reddit.submission(url=url)
-    # title = submission.title
-    # content = None
-    # features = [submission['ups']]
-    # image = None
-    # if hasattr(submission, "selftext"):
-    #     content = submission['selftext']
-    # elif hasattr(submission, "post_hint") and submission.post_hint == 'link':
-    #     link = submission['url']
-    #     link = re.sub(r'\?.*', '', link)
-    #     link = re.sub(r'\/$', '', link)
-    #     article = crawlingArticle(link)
-    #     content = article['summary']
-    #     image = article['image']
-    # elif hasattr(submission, "post_hint") and submission.post_hint == 'image':
-    #     image = submission['url']
-    #     image_features = extract_image_feature(image)
-    #     features = features.extend(image_features)
-    #
-    # text = title + '\n' + content
-    #
-    # submission.comment_limit = 5
-    # for c in list(submission.comments):
-    #     text += '\n' + c['body_html']
-    #
-    # res = get_prediction_from_trained_model(text, features)
+    reddit = praw.Reddit(
+        client_id=os.getenv('REDDIT_CLIENT_ID'),
+        client_secret=os.getenv('REDDIT_CLIENT_SECRET'),
+        refresh_token=os.getenv('REDDIT_REFRESH_TOKEN'),
+        user_agent=os.getenv('REDDIT_USER_AGENT'),
+    )
+    # Search Submission by url
+    submission = reddit.submission(url=url)
+    content_text = submission.title + '\n'
+    context_text = None
+    context_features = [submission.score]
+    image = None
+    if hasattr(submission, "selftext") and submission.selftext != '':
+        content_text += submission.selftext
+    elif hasattr(submission, "post_hint") and submission.post_hint == 'link':
+        link = submission.url
+        link = re.sub(r'\?.*', '', link)
+        link = re.sub(r'\/$', '', link)
+        article = crawlingArticle(link)
+        if article is not None:
+            content_text += article['doc']
+            image = article['image']
+    elif hasattr(submission, "post_hint") and submission.post_hint == 'image':
+        image = submission.url
+    else:
+        return Response(dumps({'result': "Cannot analyse the content.", 'url': url}), mimetype='application/json')
 
-    return Response(dumps({'result': 1, 'url': url}), mimetype='application/json')
+    if image is not None:
+        image_features = extract_image_feature(image)
+        content_features = image_features
+    else:
+        content_features = [0]*6
+
+    content_features = np.array(content_features).reshape((-1, 1))
+    if len(content_features) < 6:
+        content_features = pad_embedding(np.array(content_features), 6)
+
+    content_text = embed_by_GloVe(content_text, 500)
+
+    tokenizer_kwargs = {'padding': True, 'truncation': True, 'max_length': 512}
+    clf = pipeline("text-classification", model="j-hartmann/emotion-english-distilroberta-base", top_k=1)
+    # Emotion labels (See: https://huggingface.co/j-hartmann/emotion-english-distilroberta-base)
+    emotion_dict = dict(anger=1, disgust=2, fear=3, joy=4, neutral=5, sadness=6, surprise=7)
+    submission.comment_sort = "best"
+    comment_list = submission.comments.list()[:5]
+    for c in comment_list:
+        text = embed_by_GloVe(c.body_html, 100)
+        emotion = clf(c.body_html, **tokenizer_kwargs)[0][0]
+        context_features.append(emotion_dict[emotion['label']])
+        if text.size == 0:
+            text = np.zeros((100, 100), dtype=float)
+        text = pad_embedding(text, 100)
+        context_text = text if context_text is None else np.concatenate((context_text, text))
+
+    context_features = np.array(context_features).reshape((-1, 1))
+    if len(context_features) < 6:
+        context_features = pad_embedding(np.array(context_features), 6)
+
+    # Padding and truncation
+    content_text = pad_embedding(content_text, 500)
+    context_text = pad_embedding(context_text, 500)
+
+    return [[content_text], [content_features], [context_text], [context_features]]
 
 
-def get_prediction_from_trained_model(text: str, features: list):
-    embed_text = embed_by_GloVe(text)
-    embed_text = pad_embedding(embed_text, 1000)
-    if len(features) != 7:
-        features += 0*(7-len(features))
-    features = np.array(features).reshape((-1, 1))
-    # model =
 
-    return 1
+def get_prediction_from_trained_model(input):
+    classes = ["Factual", "Misinformation"]
+    # Load the local model from huggingface
+    # model = from_pretrained_keras("ellen-0221/dl-reddit-misinformation-classifier")
+    model = load_model('../misinformation_classifier.keras')
+    model.summary()
+    res = model.predict(input)
+
+    return classes[np.argmax(res)]
 
 
 def pad_embedding(embedding: np.array, max_length: int):
@@ -169,6 +207,9 @@ def pad_embedding(embedding: np.array, max_length: int):
     return np.array(embedding, dtype=float)
 
 
+glove_wv = gensim.downloader.load('glove-wiki-gigaword-100')
+
+
 def embed_by_GloVe(doc: str, max_length: int = -1):
     '''
     Tokenise and embed the sentence with GloVe
@@ -179,7 +220,6 @@ def embed_by_GloVe(doc: str, max_length: int = -1):
     Returns:
         A list of word embedding.
     '''
-    glove_wv = gensim.downloader.load('glove-wiki-gigaword-100')
     tokenizers = get_tokenizer('basic_english')
     tokenized_doc = tokenizers(doc)
     embedding = []
@@ -199,7 +239,7 @@ def extract_image_feature(imageUrl):
             # Get image's size, width, and height
             file = urllib.request.urlopen(imageUrl)
             im = Image.open(file)
-            image_byte = image_to_byte_array(im)
+            # image_byte = image_to_byte_array(im)
             # image_properties = extract_dominant_color(image_byte)
             # image_properties = {'width': im.width, 'height': im.height,
             #                     'size': im.width * im.height}
@@ -224,6 +264,8 @@ def crawlingArticle(url):
     try:
         article = Article(url)
         article = article.download()
+        if article is None:
+            return None
         article.parse()
     except (ArticleException, ValueError, RuntimeError, TimeoutError):
         return None
@@ -242,29 +284,11 @@ def crawlingArticle(url):
 
     doc = title + '\n' + content
 
-    # Load the summarisation model and its tokeniser
-    transformer = 'facebook/bart-large-cnn'
-    tokeniser = BartTokenizer.from_pretrained(transformer)
-    model = BartForConditionalGeneration.from_pretrained(transformer)
-    tokens = tokeniser([doc], return_tensors='pt', padding=True,
-                       truncation=True, max_length=1000)
-
-    summary_ids = model.generate(tokens['input_ids'],
-                                 num_beams=4,
-                                 max_length=512,
-                                 early_stopping=True)
-
-    summary = tokeniser.batch_decode(
-        summary_ids,
-        skip_special_tokens=True,
-        clean_up_tokenization_spaces=False
-    )[0]
-
     # Extract top image
     top_image = article.top_image
 
     return {'title': title, 'content': content,
-            'summary': summary, 'image': top_image}
+            'doc': doc, 'image': top_image}
 
 
 @bp.route('/countRedditByDate')
