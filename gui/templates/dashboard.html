@@ -20,7 +20,8 @@
 		<script src="../static/dashboard/dashboard.js" type="module"></script>
 	</head>
 	<body>
-		<div class="top-title fs-4">Reddit Dataset Dashboard</div>	
+		<div class="top-title fs-4">Reddit Dataset Dashboard</div>
+	
 		<div class="container-fluid d-flex flex-column h-100">
 			<ul class="nav nav-tabs pt-3" id="navTab">
 				<li class="nav-item">
@@ -110,7 +111,7 @@
 								</div>
 							</div>
 						</div>
-						<div class="row py-2 w-100 m-auto p-0 flex-fill">
+						<div class="row py-2 w-100 h-100 m-auto p-0 flex-fill">
 							<div class="col-6 p-0 pe-2">
 								<div class="card border-light-subtle h-100">
 									<div class="theme-color-4 card-header border-light-subtle text-center">Misinformation
@@ -218,7 +219,7 @@
 								<hr>
 								<div class="checker-result flex-grow-1 d-flex flex-column">
 									<div class="flex-grow-1">
-										<div class="form-label">Result: <label id="checkResult" class="fs-4">Misinformation</label></div>
+										<div class="form-label">Result: <label id="checkResult" class="fs-4"></label></div>
 									</div>
 									<div class="mt-auto">
 										<div class="form-label">This function is implemented by first collecting data from Reddit through the URL, followed by putting the data into a misinformation detection model.
@@ -233,6 +234,14 @@
 					</div>
 				</div>
 			</div>
+		</div>
+		
+		<div id="overallLoading" class="w-100 h-100 d-none d-flex fs-3 overall-loading">
+			<label class="text-center m-auto d-flex">
+				<span class="spinner-border spinner-border me-2 my-auto"
+					role="status" aria-hidden="true"></span>
+				Loading ...
+			</label>
 		</div>
 
 		<div class="tooltip-graph" id="netTooltip"></div>

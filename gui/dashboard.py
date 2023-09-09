@@ -1,7 +1,8 @@
 import re
 import time
 import numpy as np
-import gensim
+# import gensim
+import gensim.downloader
 from flask import (
     Blueprint, g, render_template, request, Response
 )

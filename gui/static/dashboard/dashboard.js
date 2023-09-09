@@ -1,8 +1,4 @@
 window.onload = function() {
-	// Enable tooltip
-	// const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
-	// const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
-
 	// Date picker listeners
 	var startDate = $('#startDate');
 	var endDate = $('#endDate');
@@ -158,6 +154,7 @@ let misWords = null;
 let facWords = null;
 
 function loadWordCloud() {
+    $("#overallLoading").removeClass("d-none");
 	let misLimit = $('#misLimit').val();
 	if (misLimit > totalMisCount) {
 		misLimit = totalMisCount
@@ -175,6 +172,7 @@ function loadWordCloud() {
 		facWords = data.fac;
 		updateWordCloud(data.mis, '#wordCloudMis');
 		updateWordCloud(data.fac, '#wordCloudFac');
+		$("#overallLoading").addClass("d-none");
 	});
 }
 
@@ -298,6 +296,7 @@ let facSimulation = null;
 
 // Load social network of posts
 function loadSocialNet() {
+    $("#overallLoading").removeClass("d-none");
 	let misLimit = $('#misLimitGraph').val();
 	if (misLimit > totalMisCount) {
 		misLimit = totalMisCount
@@ -313,6 +312,7 @@ function loadSocialNet() {
 
 		misSimulation = initSocialGraph(graph.nodes.mis, graph.links.mis, "#socialNetMis");
 		facSimulation = initSocialGraph(graph.nodes.fac, graph.links.fac, "#socialNetFac");
+		$("#overallLoading").addClass("d-none");
 	});
 }
 

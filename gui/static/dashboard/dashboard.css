@@ -73,3 +73,9 @@ text {
      font-size: .8rem;
 	 opacity: 0;
 }
+
+.overall-loading {
+	position: absolute;
+	background-color: rgba(46, 51, 56, 0.3);
+	z-index: 1000;
+}
